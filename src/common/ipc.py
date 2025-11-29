@@ -8,6 +8,10 @@ from typing import Callable, Optional
 logger = logging.getLogger(__name__)
 
 # Protocol: 4 bytes length (big endian) + JSON body
+MSG_KEY_EVENT = "key_event"
+MSG_REPLACE_TEXT = "replace_text"
+MSG_PING = "ping"
+MSG_PONG = "pong"
 
 def send_msg(sock: socket.socket, msg: dict):
     """Encodes and sends a JSON message."""

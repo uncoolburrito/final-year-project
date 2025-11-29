@@ -1,4 +1,5 @@
 import flet as ft
+from flet import colors
 from src.gui.components.sidebar import Sidebar
 from src.gui.views.dashboard import DashboardView
 from src.gui.views.library import LibraryView

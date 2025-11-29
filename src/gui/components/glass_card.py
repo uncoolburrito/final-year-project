@@ -1,4 +1,5 @@
 import flet as ft
+from flet import colors
 
 class GlassCard(ft.Container):
     def __init__(
@@ -16,13 +17,13 @@ class GlassCard(ft.Container):
             height=height,
             padding=padding,
             border_radius=16,
-            bgcolor=ft.colors.with_opacity(0.05, ft.colors.WHITE),
-            border=ft.border.all(1, ft.colors.with_opacity(0.1, ft.colors.WHITE)),
+            bgcolor=colors.with_opacity(0.05, colors.WHITE),
+            border=ft.border.all(1, colors.with_opacity(0.1, colors.WHITE)),
             blur=ft.Blur(10, 10, ft.BlurTileMode.MIRROR),
             shadow=ft.BoxShadow(
                 spread_radius=0,
                 blur_radius=20,
-                color=ft.colors.with_opacity(0.1, ft.colors.BLACK),
+                color=colors.with_opacity(0.1, colors.BLACK),
                 offset=ft.Offset(0, 10),
             ),
             animate=ft.animation.Animation(300, ft.AnimationCurve.EASE_OUT),

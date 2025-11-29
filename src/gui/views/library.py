@@ -1,4 +1,5 @@
 import flet as ft
+from flet import colors
 from src.gui.components.glass_card import GlassCard
 from src.common.models import Snippet, TriggerType
 from src.engine.store import Store
@@ -14,7 +15,7 @@ class LibraryView(ft.Row):
             hint_text="Search snippets...",
             prefix_icon=ft.icons.SEARCH,
             border_radius=10,
-            bgcolor=ft.colors.with_opacity(0.1, ft.colors.WHITE),
+            bgcolor=colors.with_opacity(0.1, colors.WHITE),
             border_width=0,
             on_change=self.filter_snippets
         )
@@ -60,7 +61,7 @@ class LibraryView(ft.Row):
                     ft.Row(
                         controls=[
                             ft.ElevatedButton("Save", on_click=self.save_snippet),
-                            ft.TextButton("Delete", on_click=self.delete_snippet, style=ft.ButtonStyle(color=ft.colors.RED)),
+                            ft.TextButton("Delete", on_click=self.delete_snippet, style=ft.ButtonStyle(color=colors.RED)),
                         ],
                         alignment=ft.MainAxisAlignment.END,
                     )
@@ -82,12 +83,12 @@ class LibraryView(ft.Row):
                     content=ft.Column(
                         controls=[
                             ft.Text(snippet.abbreviation, weight=ft.FontWeight.BOLD),
-                            ft.Text(snippet.expansion, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS, size=12, color=ft.colors.WHITE54),
+                            ft.Text(snippet.expansion, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS, size=12, color=colors.WHITE54),
                         ]
                     ),
                     padding=10,
                     border_radius=8,
-                    bgcolor=ft.colors.with_opacity(0.05, ft.colors.WHITE),
+                    bgcolor=colors.with_opacity(0.05, colors.WHITE),
                     on_click=lambda e, s=snippet: self.select_snippet(s),
                     cursor=ft.Cursor.CLICK,
                 )
