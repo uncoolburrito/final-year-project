@@ -3,42 +3,45 @@ from src.gui.components.glass_card import GlassCard
 from src.common.models import Snippet, TriggerType
 from src.engine.store import Store
 
+
 class LibraryView(ft.Row):
     def __init__(self, store: Store):
         super().__init__(expand=True, spacing=20)
         self.store = store
-        
+
         # Left Pane: List
         self.snippet_list = ft.ListView(expand=True, spacing=10)
+
+        # Simple search field, no icon to avoid ft.icons
         self.search_field = ft.TextField(
             hint_text="Search snippets...",
-            prefix_icon=ft.icons.SEARCH,
             border_radius=10,
-            bgcolor=ft.Colors.with_opacity(0.1, ft.Colors.WHITE),
+            bgcolor="rgba(255, 255, 255, 0.10)",
             border_width=0,
-            on_change=self.filter_snippets
+            on_change=self.filter_snippets,
         )
-        
+
         self.left_pane = ft.Container(
             content=ft.Column(
                 controls=[
                     ft.Text("Library", size=32, weight=ft.FontWeight.BOLD),
                     self.search_field,
                     self.snippet_list,
-                    ft.FloatingActionButton(icon=ft.icons.ADD, on_click=self.add_snippet)
+                    # Use text instead of icon for the FAB
+                    ft.FloatingActionButton(text="+", on_click=self.add_snippet),
                 ]
             ),
             width=300,
         )
-        
+
         # Right Pane: Editor
         self.abbr_field = ft.TextField(label="Abbreviation", border_radius=10)
         self.content_field = ft.TextField(
-            label="Expansion", 
-            multiline=True, 
-            min_lines=10, 
+            label="Expansion",
+            multiline=True,
+            min_lines=10,
             border_radius=10,
-            text_style=ft.TextStyle(font_family="Consolas")
+            text_style=ft.TextStyle(font_family="Consolas"),
         )
         self.trigger_dropdown = ft.Dropdown(
             label="Trigger",
@@ -47,9 +50,9 @@ class LibraryView(ft.Row):
                 ft.dropdown.Option(TriggerType.ENTER.value),
                 ft.dropdown.Option(TriggerType.NONE.value),
             ],
-            value=TriggerType.NONE.value
+            value=TriggerType.NONE.value,
         )
-        
+
         self.editor_pane = GlassCard(
             content=ft.Column(
                 controls=[
@@ -60,16 +63,21 @@ class LibraryView(ft.Row):
                     ft.Row(
                         controls=[
                             ft.ElevatedButton("Save", on_click=self.save_snippet),
-                            ft.TextButton("Delete", on_click=self.delete_snippet, style=ft.ButtonStyle(color=ft.Colors.RED)),
+                            ft.TextButton(
+                                "Delete",
+                                on_click=self.delete_snippet,
+                                # was ft.Colors.RED, now plain string
+                                style=ft.ButtonStyle(color={"": "#FF5252"}),
+                            ),
                         ],
                         alignment=ft.MainAxisAlignment.END,
-                    )
+                    ),
                 ],
                 spacing=20,
             ),
             expand=True,
         )
-        
+
         self.controls = [self.left_pane, self.editor_pane]
         self.current_snippet = None
         self.refresh_list()
@@ -82,12 +90,18 @@ class LibraryView(ft.Row):
                     content=ft.Column(
                         controls=[
                             ft.Text(snippet.abbreviation, weight=ft.FontWeight.BOLD),
-                            ft.Text(snippet.expansion, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS, size=12, color=ft.Colors.WHITE54),
+                            ft.Text(
+                                snippet.expansion,
+                                max_lines=1,
+                                overflow=ft.TextOverflow.ELLIPSIS,
+                                size=12,
+                                color="#AAAAAA",
+                            ),
                         ]
                     ),
                     padding=10,
                     border_radius=8,
-                    bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.WHITE),
+                    bgcolor="rgba(255, 255, 255, 0.05)",
                     on_click=lambda e, s=snippet: self.select_snippet(s),
                     cursor=ft.Cursor.CLICK,
                 )
@@ -95,10 +109,10 @@ class LibraryView(ft.Row):
         self.update()
 
     def filter_snippets(self, e):
-        # TODO: Implement filtering
+        # TODO: Implement filtering (optional)
         pass
 
-    def select_snippet(self, snippet):
+    def select_snippet(self, snippet: Snippet):
         self.current_snippet = snippet
         self.abbr_field.value = snippet.abbreviation
         self.content_field.value = snippet.expansion
@@ -115,7 +129,7 @@ class LibraryView(ft.Row):
     def save_snippet(self, e):
         if not self.abbr_field.value:
             return
-            
+
         if self.current_snippet:
             self.current_snippet.abbreviation = self.abbr_field.value
             self.current_snippet.expansion = self.content_field.value
@@ -125,14 +139,14 @@ class LibraryView(ft.Row):
             new_snippet = Snippet(
                 abbreviation=self.abbr_field.value,
                 expansion=self.content_field.value,
-                trigger=TriggerType(self.trigger_dropdown.value)
+                trigger=TriggerType(self.trigger_dropdown.value),
             )
             self.store.add_snippet(new_snippet)
-        
+
         self.refresh_list()
 
     def delete_snippet(self, e):
         if self.current_snippet:
             self.store.delete_snippet(self.current_snippet.id)
-            self.add_snippet(None) # Reset
+            self.add_snippet(None)  # Reset
             self.refresh_list()
