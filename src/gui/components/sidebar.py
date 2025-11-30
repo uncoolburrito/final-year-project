@@ -8,7 +8,7 @@ class Sidebar(ft.Container):
         self.width = 250
         self.padding = 20
 
-        # Simple background and border using color strings
+        # Simple background and border using CSS-like RGBA strings
         self.bgcolor = "rgba(255, 255, 255, 0.02)"
         self.border = ft.border.only(
             right=ft.border.BorderSide(1, "rgba(255, 255, 255, 0.10)")
@@ -45,10 +45,10 @@ class Sidebar(ft.Container):
             self.selected_index = index
             self.on_nav_change(index)
 
-        item = ft.Container(
+        return ft.Container(
             content=ft.Row(
                 controls=[
-                    # No icon here to avoid ft.icons issues; just text.
+                    # icons removed — plain text only
                     ft.Text(label, size=14, color="#FFFFFF"),
                 ],
                 spacing=15,
@@ -57,7 +57,5 @@ class Sidebar(ft.Container):
             border_radius=10,
             on_hover=on_hover,
             on_click=on_click,
-            cursor=ft.Cursor.CLICK,
+            # Removed ft.Cursor.CLICK → unsupported on your laptop
         )
-        self.nav_items.append(item)
-        return item
