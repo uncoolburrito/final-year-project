@@ -90,6 +90,12 @@ class Win32Input:
                 ).contents
                 is_down = wParam in (WM_KEYDOWN, WM_SYSKEYDOWN)
 
+                # LOUD log so we know the hook sees keys
+                logger.info(
+                    f"Hook key event: vk={kb_struct.vkCode} "
+                    f"scan={kb_struct.scanCode} is_down={is_down}"
+                )
+
                 try:
                     should_block = callback(
                         kb_struct.vkCode, kb_struct.scanCode, is_down
@@ -107,14 +113,12 @@ class Win32Input:
 
         self.hook_proc = low_level_handler
 
-        # IMPORTANT:
-        # For WH_KEYBOARD_LL, we can safely pass hMod=0 and threadId=0
-        # to install a global low-level hook in this process.
+        # For WH_KEYBOARD_LL, hMod=0 and threadId=0 is valid for global low-level hook
         self.hook_id = user32.SetWindowsHookExW(
             WH_KEYBOARD_LL,
             self.hook_proc,
-            0,   # hMod = 0 avoids ERROR_MOD_NOT_FOUND (126) on some setups
-            0,   # system-wide low-level hook
+            0,   # hMod
+            0,   # system-wide
         )
 
         if not self.hook_id:
