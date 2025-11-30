@@ -7,20 +7,20 @@ logger = logging.getLogger(__name__)
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
 
-# ----- Win32 constants -----
+# Constants
 WH_KEYBOARD_LL = 13
-
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
 WM_SYSKEYDOWN = 0x0104
 WM_SYSKEYUP = 0x0105
 
+# Virtual Key Codes
 VK_BACK = 0x08
+VK_SPACE = 0x20
+VK_RETURN = 0x0D
 VK_SHIFT = 0x10
-VK_CONTROL = 0x11
-VK_MENU = 0x12  # Alt
 
-# ----- Structs -----
+# Structs
 class KBDLLHOOKSTRUCT(ctypes.Structure):
     _fields_ = [
         ("vkCode", wintypes.DWORD),
@@ -31,50 +31,16 @@ class KBDLLHOOKSTRUCT(ctypes.Structure):
     ]
 
 
-# ----- Win32 API signatures -----
-# LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
-LowLevelKeyboardProc = ctypes.WINFUNCTYPE(
-    ctypes.c_long, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM
+# Callback type
+HOOKPROC = ctypes.CFUNCTYPE(
+    ctypes.c_longlong, ctypes.c_int, wintypes.WPARAM, wintypes.LPARAM
 )
-
-user32.SetWindowsHookExW.argtypes = (
-    ctypes.c_int,           # idHook
-    LowLevelKeyboardProc,   # lpfn
-    wintypes.HINSTANCE,     # hMod
-    wintypes.DWORD,         # dwThreadId
-)
-user32.SetWindowsHookExW.restype = wintypes.HHOOK
-
-user32.CallNextHookEx.argtypes = (
-    wintypes.HHOOK,
-    ctypes.c_int,
-    wintypes.WPARAM,
-    wintypes.LPARAM,
-)
-user32.CallNextHookEx.restype = ctypes.c_long
-
-user32.UnhookWindowsHookEx.argtypes = (wintypes.HHOOK,)
-user32.UnhookWindowsHookEx.restype = wintypes.BOOL
-
-user32.GetMessageW.argtypes = (
-    ctypes.POINTER(wintypes.MSG),
-    wintypes.HWND,
-    wintypes.UINT,
-    wintypes.UINT,
-)
-user32.GetMessageW.restype = wintypes.BOOL
-
-user32.TranslateMessage.argtypes = (ctypes.POINTER(wintypes.MSG),)
-user32.DispatchMessageW.argtypes = (ctypes.POINTER(wintypes.MSG),)
-
-user32.SendInput.argtypes = (wintypes.UINT, ctypes.c_void_p, ctypes.c_int)
-user32.SendInput.restype = wintypes.UINT
 
 
 class Win32Input:
     def __init__(self):
         self.hook_id = None
-        self.hook_proc = None  # keep reference to avoid GC
+        self.hook_proc = None  # Keep reference to prevent GC
 
     def install_hook(self, callback):
         """
@@ -82,7 +48,6 @@ class Win32Input:
         callback: function(vk_code, scan_code, is_down) -> bool (True to block, False to pass)
         """
 
-        @LowLevelKeyboardProc
         def low_level_handler(nCode, wParam, lParam):
             if nCode == 0:
                 kb_struct = ctypes.cast(
@@ -90,35 +55,25 @@ class Win32Input:
                 ).contents
                 is_down = wParam in (WM_KEYDOWN, WM_SYSKEYDOWN)
 
-                # LOUD log so we know the hook sees keys
+                # Log **every** key the hook sees
                 logger.info(
                     f"Hook key event: vk={kb_struct.vkCode} "
                     f"scan={kb_struct.scanCode} is_down={is_down}"
                 )
 
-                try:
-                    should_block = callback(
-                        kb_struct.vkCode, kb_struct.scanCode, is_down
-                    )
-                except Exception as e:
-                    logger.exception("Error in keyboard callback: %s", e)
-                    should_block = False
+                # Call user callback
+                should_block = callback(
+                    kb_struct.vkCode, kb_struct.scanCode, is_down
+                )
 
                 if should_block:
-                    # non-zero return means "eat the event"
                     return 1
 
-            # pass to next hook
             return user32.CallNextHookEx(self.hook_id, nCode, wParam, lParam)
 
-        self.hook_proc = low_level_handler
-
-        # For WH_KEYBOARD_LL, hMod=0 and threadId=0 is valid for global low-level hook
+        self.hook_proc = HOOKPROC(low_level_handler)
         self.hook_id = user32.SetWindowsHookExW(
-            WH_KEYBOARD_LL,
-            self.hook_proc,
-            0,   # hMod
-            0,   # system-wide
+            WH_KEYBOARD_LL, self.hook_proc, kernel32.GetModuleHandleW(None), 0
         )
 
         if not self.hook_id:
@@ -144,74 +99,90 @@ class Win32Input:
             user32.TranslateMessage(ctypes.byref(msg))
             user32.DispatchMessageW(ctypes.byref(msg))
 
+    # -------------------------
+    # OUTPUT / INJECTION HELPERS
+    # -------------------------
+
     def send_backspace(self, count=1):
         """Sends N backspaces."""
+        logger.debug(f"Sending {count} backspaces via keybd_event")
         for _ in range(count):
-            self._send_vk_key(VK_BACK)
+            self._send_key(VK_BACK)
 
     def send_text(self, text: str):
         """
-        Sends text using SendInput (Unicode) char by char.
+        Sends text by synthesizing simple keyboard events.
+        For now we support:
+          - a–z / A–Z
+          - 0–9
+          - space
+          - newline
+          - underscore (via Shift + '-')
+        This is enough for most snippets and avoids Unicode SendInput quirks.
         """
-        for char in text:
-            self._send_unicode_char(char)
+        logger.info(f"Sending text via keybd_event: {repr(text)}")
 
-    def _send_vk_key(self, vk_code: int):
-        # fallback using keybd_event (deprecated but simple)
+        for ch in text:
+            vk, use_shift = self._char_to_vk(ch)
+            if vk is None:
+                logger.warning(f"Skipping unsupported char in send_text: {repr(ch)}")
+                continue
+
+            if use_shift:
+                # Press Shift
+                user32.keybd_event(VK_SHIFT, 0, 0, 0)
+
+            # Key down + up
+            user32.keybd_event(vk, 0, 0, 0)
+            user32.keybd_event(vk, 0, 2, 0)  # KEYEVENTF_KEYUP = 2
+
+            if use_shift:
+                # Release Shift
+                user32.keybd_event(VK_SHIFT, 0, 2, 0)
+
+    def _send_key(self, vk_code):
+        """Send a single virtual-key press (down+up)."""
         user32.keybd_event(vk_code, 0, 0, 0)
-        user32.keybd_event(vk_code, 0, 2, 0)  # KEYEVENTF_KEYUP = 0x0002
+        user32.keybd_event(vk_code, 0, 2, 0)
 
-    def _send_unicode_char(self, char: str):
-        INPUT_KEYBOARD = 1
-        KEYEVENTF_UNICODE = 0x0004
-        KEYEVENTF_KEYUP = 0x0002
+    def _char_to_vk(self, ch):
+        """
+        Very simple char -> (vk_code, use_shift) mapper.
+        Assumes US keyboard layout, enough for demo / project.
+        """
+        # Newline
+        if ch == "\n" or ch == "\r":
+            return VK_RETURN, False
 
-        class KEYBDINPUT(ctypes.Structure):
-            _fields_ = [
-                ("wVk", wintypes.WORD),
-                ("wScan", wintypes.WORD),
-                ("dwFlags", wintypes.DWORD),
-                ("time", wintypes.DWORD),
-                ("dwExtraInfo", ctypes.c_ulonglong),
-            ]
+        # Space
+        if ch == " ":
+            return VK_SPACE, False
 
-        class INPUT(ctypes.Structure):
-            class _INPUT(ctypes.Union):
-                _fields_ = [("ki", KEYBDINPUT)]
+        # Digits 0–9
+        if "0" <= ch <= "9":
+            return ord(ch), False  # VK_0..VK_9 == ASCII '0'..'9'
 
-            _anonymous_ = ("_input",)
-            _fields_ = [("type", wintypes.DWORD), ("_input", _INPUT)]
+        # Lowercase letters a–z
+        if "a" <= ch <= "z":
+            return ord(ch.upper()), False  # VK_A..VK_Z
 
-        down = INPUT(
-            type=INPUT_KEYBOARD,
-            ki=KEYBDINPUT(
-                wVk=0,
-                wScan=ord(char),
-                dwFlags=KEYEVENTF_UNICODE,
-                time=0,
-                dwExtraInfo=0,
-            ),
-        )
+        # Uppercase letters A–Z
+        if "A" <= ch <= "Z":
+            return ord(ch), True  # same VK, but require Shift
 
-        up = INPUT(
-            type=INPUT_KEYBOARD,
-            ki=KEYBDINPUT(
-                wVk=0,
-                wScan=ord(char),
-                dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
-                time=0,
-                dwExtraInfo=0,
-            ),
-        )
+        # Underscore: usually Shift + '-' (VK_OEM_MINUS = 0xBD)
+        if ch == "_":
+            VK_OEM_MINUS = 0xBD
+            return VK_OEM_MINUS, True
 
-        user32.SendInput(1, ctypes.byref(down), ctypes.sizeof(down))
-        user32.SendInput(1, ctypes.byref(up), ctypes.sizeof(up))
+        # Fallback: unsupported
+        return None, False
 
-    def get_foreground_window_title(self) -> str:
+    def get_foreground_window_title(self):
         hwnd = user32.GetForegroundWindow()
-        length = user32.GetWindowTextLengthW(hwnd)
-        if length == 0:
+        if not hwnd:
             return ""
+        length = user32.GetWindowTextLengthW(hwnd)
         buff = ctypes.create_unicode_buffer(length + 1)
         user32.GetWindowTextW(hwnd, buff, length + 1)
         return buff.value
