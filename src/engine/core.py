@@ -26,6 +26,7 @@ class ExpansionEngine:
         self.buffer += char
         if len(self.buffer) > self.max_buffer_size:
             self.buffer = self.buffer[-self.max_buffer_size:]
+        logger.debug(f"Buffer before match: '{self.buffer}'")
 
         # Check for matches
         # We check from longest possible match to shortest
@@ -65,6 +66,7 @@ class ExpansionEngine:
 
             if match_condition:
                 logger.info(f"Match found: {abbr} -> {snippet.expansion}")
+                logger.debug(f"Matched abbreviation '{abbr}' -> expansion length={len(snippet.expansion)}")
                 
                 # Resolve placeholders
                 expanded_text = self.resolver.resolve(snippet.expansion)

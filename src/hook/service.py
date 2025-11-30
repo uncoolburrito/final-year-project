@@ -108,6 +108,7 @@ class HookService:
         Callback from Win32 Hook.
         Returns True to block key, False to pass.
         """
+        logger.debug(f"Key event: vk={vk_code} scan={scan_code} is_down={is_down}")
         if not self.connected:
             return False
 

@@ -49,6 +49,7 @@ class BackendService:
             payload = msg.get("payload", {})
             char = payload.get("char")
             is_backspace = payload.get("is_backspace", False)
+            logger.debug(f"Backend received key event: {payload}")
             
             if char or is_backspace:
                 result = self.engine.process_key(char, is_backspace)
