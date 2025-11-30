@@ -23,6 +23,7 @@ VK_LEFT = 0x25
 VK_UP = 0x26
 VK_RIGHT = 0x27
 VK_DOWN = 0x28
+VK_V = 0x56
 
 # Structs
 class KBDLLHOOKSTRUCT(ctypes.Structure):
@@ -54,21 +55,22 @@ class Win32Input:
 
         def low_level_handler(nCode, wParam, lParam):
             if nCode == 0:
-                kb_struct = ctypes.cast(
-                    lParam, ctypes.POINTER(KBDLLHOOKSTRUCT)
-                ).contents
-                is_down = (wParam == WM_KEYDOWN or wParam == WM_SYSKEYDOWN)
+                kb_struct = ctypes.cast(lParam, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
+                is_down = wParam in (WM_KEYDOWN, WM_SYSKEYDOWN)
 
-                # Log every key so we can see the hook is alive
+                # Log a bit to see events
                 logger.info(
-                    f"Hook key event: vk={kb_struct.vkCode} "
-                    f"scan={kb_struct.scanCode} is_down={is_down}"
+                    f"Hook key event: vk={kb_struct.vkCode} scan={kb_struct.scanCode} is_down={is_down}"
                 )
 
                 # Call user callback
-                should_block = callback(
-                    kb_struct.vkCode, kb_struct.scanCode, is_down
-                )
+                try:
+                    should_block = callback(
+                        kb_struct.vkCode, kb_struct.scanCode, is_down
+                    )
+                except Exception as e:
+                    logger.error(f"Error in hook callback: {e}")
+                    should_block = False
 
                 if should_block:
                     return 1
@@ -76,8 +78,14 @@ class Win32Input:
             return user32.CallNextHookEx(self.hook_id, nCode, wParam, lParam)
 
         self.hook_proc = HOOKPROC(low_level_handler)
+
+        # IMPORTANT CHANGE: for WH_KEYBOARD_LL we can safely pass hMod = 0 when threadId=0
+        # This avoids some ERROR_MOD_NOT_FOUND (126) issues.
+        hMod = 0
+        thread_id = 0
+
         self.hook_id = user32.SetWindowsHookExW(
-            WH_KEYBOARD_LL, self.hook_proc, kernel32.GetModuleHandleW(None), 0
+            WH_KEYBOARD_LL, self.hook_proc, hMod, thread_id
         )
 
         if not self.hook_id:
@@ -99,29 +107,33 @@ class Win32Input:
         Runs the message loop. Blocking.
         """
         msg = wintypes.MSG()
+        # Standard GetMessage loop
         while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
             user32.TranslateMessage(ctypes.byref(msg))
             user32.DispatchMessageW(ctypes.byref(msg))
 
-    # -------------------------
-    # OUTPUT / INJECTION HELPERS
-    # -------------------------
-
     def send_backspace(self, count=1):
         """Sends N backspaces."""
-        logger.debug(f"Sending {count} backspaces via keybd_event")
         for _ in range(count):
             self._send_key(VK_BACK)
 
     def send_text(self, text):
         """
-        Kept for fallback, but primary path will use clipboard+Ctrl+V.
+        Sends text using SendInput (Unicode), char by char.
         """
-        logger.info(f"(fallback) send_text called with: {repr(text)}")
-        for ch in text:
-            vk = ord(ch)
-            user32.keybd_event(vk, 0, 0, 0)
-            user32.keybd_event(vk, 0, 2, 0)
+        for char in text:
+            self._send_unicode_char(char)
+
+    def send_ctrl_v(self):
+        """Send Ctrl+V (paste)."""
+        # Key down CTRL
+        user32.keybd_event(VK_CONTROL, 0, 0, 0)
+        # Key down V
+        user32.keybd_event(VK_V, 0, 0, 0)
+        # Key up V
+        user32.keybd_event(VK_V, 0, 2, 0)
+        # Key up CTRL
+        user32.keybd_event(VK_CONTROL, 0, 2, 0)
 
     def _send_key(self, vk_code):
         # Down
@@ -129,18 +141,55 @@ class Win32Input:
         # Up
         user32.keybd_event(vk_code, 0, 2, 0)
 
-    def send_ctrl_v(self):
-        """Simulate Ctrl+V."""
-        VK_V = 0x56
-        user32.keybd_event(VK_CONTROL, 0, 0, 0)
-        user32.keybd_event(VK_V, 0, 0, 0)
-        user32.keybd_event(VK_V, 0, 2, 0)
-        user32.keybd_event(VK_CONTROL, 0, 2, 0)
+    def _send_unicode_char(self, char):
+        INPUT_KEYBOARD = 1
+        KEYEVENTF_UNICODE = 0x0004
+        KEYEVENTF_KEYUP = 0x0002
+
+        class KEYBDINPUT(ctypes.Structure):
+            _fields_ = [
+                ("wVk", wintypes.WORD),
+                ("wScan", wintypes.WORD),
+                ("dwFlags", wintypes.DWORD),
+                ("time", wintypes.DWORD),
+                ("dwExtraInfo", ctypes.c_ulonglong),
+            ]
+
+        class INPUT(ctypes.Structure):
+            class _INPUT(ctypes.Union):
+                _fields_ = [("ki", KEYBDINPUT)]
+
+            _anonymous_ = ("_input",)
+            _fields_ = [("type", wintypes.DWORD), ("_input", _INPUT)]
+
+        # Key down
+        x = INPUT(
+            type=INPUT_KEYBOARD,
+            ki=KEYBDINPUT(
+                wVk=0,
+                wScan=ord(char),
+                dwFlags=KEYEVENTF_UNICODE,
+                time=0,
+                dwExtraInfo=0,
+            ),
+        )
+        user32.SendInput(1, ctypes.byref(x), ctypes.sizeof(x))
+
+        # Key up
+        y = INPUT(
+            type=INPUT_KEYBOARD,
+            ki=KEYBDINPUT(
+                wVk=0,
+                wScan=ord(char),
+                dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
+                time=0,
+                dwExtraInfo=0,
+            ),
+        )
+        user32.SendInput(1, ctypes.byref(y), ctypes.sizeof(y))
 
     def get_foreground_window_title(self):
         hwnd = user32.GetForegroundWindow()
-        if not hwnd:
-            return ""
         length = user32.GetWindowTextLengthW(hwnd)
         buff = ctypes.create_unicode_buffer(length + 1)
         user32.GetWindowTextW(hwnd, buff, length + 1)
