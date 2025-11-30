@@ -19,6 +19,13 @@ class Snippet(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
+    def to_dict(self):
+        return self.model_dump(mode='json')
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(**data)
+
 class Profile(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
