@@ -34,4 +34,6 @@ Communication happens via local TCP sockets (localhost).
 ## Development
 
 1.  Install dependencies: `pip install -r requirements.txt`
-2.  Run the system: `python src/main.py`
+2.  Run the system: `python -m src.main`
+
+idk why the fuck `python src/main.py` dont work 
