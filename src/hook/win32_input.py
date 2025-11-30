@@ -16,9 +16,14 @@ WM_SYSKEYUP = 0x0105
 
 # Virtual Key Codes
 VK_BACK = 0x08
+VK_SHIFT = 0x10
 VK_SPACE = 0x20
 VK_RETURN = 0x0D
-VK_SHIFT = 0x10
+
+VK_LEFT = 0x25
+VK_UP = 0x26
+VK_RIGHT = 0x27
+VK_DOWN = 0x28
 
 # Structs
 class KBDLLHOOKSTRUCT(ctypes.Structure):
@@ -55,7 +60,7 @@ class Win32Input:
                 ).contents
                 is_down = wParam in (WM_KEYDOWN, WM_SYSKEYDOWN)
 
-                # Log **every** key the hook sees
+                # This logging used to work for you — keep it
                 logger.info(
                     f"Hook key event: vk={kb_struct.vkCode} "
                     f"scan={kb_struct.scanCode} is_down={is_down}"
@@ -109,18 +114,18 @@ class Win32Input:
         for _ in range(count):
             self._send_key(VK_BACK)
 
-    def send_text(self, text: str):
+    def send_text(self, text):
         """
-        Sends text by synthesizing simple keyboard events.
-        For now we support:
+        Sends text by synthesizing simple keyboard events with keybd_event.
+        Supports:
           - a–z / A–Z
           - 0–9
           - space
           - newline
-          - underscore (via Shift + '-')
-        This is enough for most snippets and avoids Unicode SendInput quirks.
+          - underscore
+        This is enough for your current snippets and avoids the flaky Unicode path.
         """
-        logger.info(f"Sending text via keybd_event: {repr(text)}")
+        logger.info(f"Sending text: {repr(text)}")
 
         for ch in text:
             vk, use_shift = self._char_to_vk(ch)
@@ -129,26 +134,25 @@ class Win32Input:
                 continue
 
             if use_shift:
-                # Press Shift
                 user32.keybd_event(VK_SHIFT, 0, 0, 0)
 
-            # Key down + up
+            # Down + up
             user32.keybd_event(vk, 0, 0, 0)
-            user32.keybd_event(vk, 0, 2, 0)  # KEYEVENTF_KEYUP = 2
+            user32.keybd_event(vk, 0, 2, 0)  # KEYEVENTF_KEYUP = 0x0002
 
             if use_shift:
-                # Release Shift
                 user32.keybd_event(VK_SHIFT, 0, 2, 0)
 
     def _send_key(self, vk_code):
-        """Send a single virtual-key press (down+up)."""
+        # Down
         user32.keybd_event(vk_code, 0, 0, 0)
+        # Up
         user32.keybd_event(vk_code, 0, 2, 0)
 
     def _char_to_vk(self, ch):
         """
         Very simple char -> (vk_code, use_shift) mapper.
-        Assumes US keyboard layout, enough for demo / project.
+        Assumes US layout, enough for demo.
         """
         # Newline
         if ch == "\n" or ch == "\r":
@@ -158,24 +162,23 @@ class Win32Input:
         if ch == " ":
             return VK_SPACE, False
 
-        # Digits 0–9
+        # Digits
         if "0" <= ch <= "9":
-            return ord(ch), False  # VK_0..VK_9 == ASCII '0'..'9'
+            return ord(ch), False  # VK_0..VK_9
 
-        # Lowercase letters a–z
+        # Lowercase letters
         if "a" <= ch <= "z":
             return ord(ch.upper()), False  # VK_A..VK_Z
 
-        # Uppercase letters A–Z
+        # Uppercase letters
         if "A" <= ch <= "Z":
-            return ord(ch), True  # same VK, but require Shift
+            return ord(ch), True  # same VK, but Shift
 
-        # Underscore: usually Shift + '-' (VK_OEM_MINUS = 0xBD)
+        # Underscore -> Shift + '-'
         if ch == "_":
             VK_OEM_MINUS = 0xBD
             return VK_OEM_MINUS, True
 
-        # Fallback: unsupported
         return None, False
 
     def get_foreground_window_title(self):
