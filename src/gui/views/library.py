@@ -29,7 +29,8 @@ class LibraryView(ft.Row):
                     self.snippet_list,
                     # Use text instead of icon for the FAB
                     ft.FloatingActionButton(text="+", on_click=self.add_snippet),
-                ]
+                ],
+                expand=True,
             ),
             width=300,
         )
@@ -66,7 +67,6 @@ class LibraryView(ft.Row):
                             ft.TextButton(
                                 "Delete",
                                 on_click=self.delete_snippet,
-                                # was ft.Colors.RED, now plain string
                                 style=ft.ButtonStyle(color={"": "#FF5252"}),
                             ),
                         ],
@@ -80,16 +80,22 @@ class LibraryView(ft.Row):
 
         self.controls = [self.left_pane, self.editor_pane]
         self.current_snippet = None
+
+        # Important: don't call update() before page is attached
         self.refresh_list()
 
     def refresh_list(self):
         self.snippet_list.controls.clear()
+
         for snippet in self.store.snippets:
             self.snippet_list.controls.append(
                 ft.Container(
                     content=ft.Column(
                         controls=[
-                            ft.Text(snippet.abbreviation, weight=ft.FontWeight.BOLD),
+                            ft.Text(
+                                snippet.abbreviation,
+                                weight=ft.FontWeight.BOLD
+                            ),
                             ft.Text(
                                 snippet.expansion,
                                 max_lines=1,
@@ -106,25 +112,31 @@ class LibraryView(ft.Row):
                     cursor=ft.Cursor.CLICK,
                 )
             )
-        self.update()
+
+        # Only update if the view is already attached to the page
+        if self.page is not None:
+            self.update()
 
     def filter_snippets(self, e):
-        # TODO: Implement filtering (optional)
-        pass
+        pass  # TODO: Optional filtering logic
 
     def select_snippet(self, snippet: Snippet):
         self.current_snippet = snippet
         self.abbr_field.value = snippet.abbreviation
         self.content_field.value = snippet.expansion
         self.trigger_dropdown.value = snippet.trigger.value
-        self.update()
+
+        if self.page is not None:
+            self.update()
 
     def add_snippet(self, e):
         self.current_snippet = None
         self.abbr_field.value = ""
         self.content_field.value = ""
         self.trigger_dropdown.value = TriggerType.NONE.value
-        self.update()
+
+        if self.page is not None:
+            self.update()
 
     def save_snippet(self, e):
         if not self.abbr_field.value:
@@ -133,7 +145,9 @@ class LibraryView(ft.Row):
         if self.current_snippet:
             self.current_snippet.abbreviation = self.abbr_field.value
             self.current_snippet.expansion = self.content_field.value
-            self.current_snippet.trigger = TriggerType(self.trigger_dropdown.value)
+            self.current_snippet.trigger = TriggerType(
+                self.trigger_dropdown.value
+            )
             self.store.update_snippet(self.current_snippet)
         else:
             new_snippet = Snippet(
@@ -148,5 +162,5 @@ class LibraryView(ft.Row):
     def delete_snippet(self, e):
         if self.current_snippet:
             self.store.delete_snippet(self.current_snippet.id)
-            self.add_snippet(None)  # Reset
+            self.add_snippet(None)
             self.refresh_list()
