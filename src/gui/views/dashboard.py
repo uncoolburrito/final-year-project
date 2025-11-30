@@ -17,7 +17,8 @@ class DashboardView(ft.Column):
                         ft.Column(
                             controls=[
                                 self.status_text,
-                                ft.Text("Listening for abbreviations...", color=ft.colors.WHITE54),
+                                # was: color=ft.colors.WHITE54
+                                ft.Text("Listening for abbreviations...", color="#FFFFFF"),
                             ],
                             expand=True,
                         ),
@@ -32,9 +33,11 @@ class DashboardView(ft.Column):
                     GlassCard(
                         content=ft.Column(
                             controls=[
-                                ft.Icon(ft.icons.FLASH_ON_ROUNDED, size=30, color=ft.Colors.AMBER),
+                                # was: color=ft.Colors.AMBER
+                                ft.Icon(ft.icons.FLASH_ON_ROUNDED, size=30, color="#FFC107"),
                                 ft.Text("124", size=24, weight=ft.FontWeight.BOLD),
-                                ft.Text("Expansions Today", size=12, color=ft.Colors.WHITE54),
+                                # was: color=ft.Colors.WHITE54
+                                ft.Text("Expansions Today", size=12, color="#FFFFFF"),
                             ]
                         ),
                         expand=True,
@@ -42,9 +45,11 @@ class DashboardView(ft.Column):
                     GlassCard(
                         content=ft.Column(
                             controls=[
-                                ft.Icon(ft.icons.TIMER_ROUNDED, size=30, color=ft.Colors.BLUE),
+                                # was: color=ft.Colors.BLUE
+                                ft.Icon(ft.icons.TIMER_ROUNDED, size=30, color="#2196F3"),
                                 ft.Text("15m", size=24, weight=ft.FontWeight.BOLD),
-                                ft.Text("Time Saved", size=12, color=ft.Colors.WHITE54),
+                                # was: color=ft.Colors.WHITE54
+                                ft.Text("Time Saved", size=12, color="#FFFFFF"),
                             ]
                         ),
                         expand=True,
