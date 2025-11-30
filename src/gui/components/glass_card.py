@@ -1,5 +1,6 @@
 import flet as ft
 
+
 class GlassCard(ft.Container):
     def __init__(
         self,
@@ -17,22 +18,13 @@ class GlassCard(ft.Container):
             padding=padding,
             border_radius=16,
 
-            # was: bgcolor=ft.colors.with_opacity(0.05, ft.colors.WHITE)
+            # Very safe visual defaults, no ft.colors / ft.animation / with_opacity
             bgcolor="rgba(255, 255, 255, 0.05)",  # soft translucent white
+            border=ft.border.all(1, "#FFFFFF22"),  # subtle border
 
-            # was: border=ft.border.all(1, ft.Colors.with_opacity(0.1, ft.Colors.WHITE))
-            border=ft.border.all(1, "rgba(255, 255, 255, 0.10)"),
+            # Drop blur/animation/shadow complexity for now to avoid version issues
+            # You can add nicer visuals later once everything runs reliably.
 
-            blur=ft.Blur(10, 10, ft.BlurTileMode.MIRROR),
-
-            # was: color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK)
-            shadow=ft.BoxShadow(
-                spread_radius=0,
-                blur_radius=20,
-                color="rgba(0, 0, 0, 0.10)",
-                offset=ft.Offset(0, 10),
-            ),
-            animate=ft.animation.Animation(300, ft.AnimationCurve.EASE_OUT),
             expand=expand,
             on_click=on_click,
         )
