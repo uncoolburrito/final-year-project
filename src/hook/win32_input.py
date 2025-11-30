@@ -17,9 +17,8 @@ WM_SYSKEYUP = 0x0105
 # Virtual Key Codes
 VK_BACK = 0x08
 VK_SHIFT = 0x10
-VK_SPACE = 0x20
-VK_RETURN = 0x0D
-
+VK_CONTROL = 0x11
+VK_MENU = 0x12  # Alt
 VK_LEFT = 0x25
 VK_UP = 0x26
 VK_RIGHT = 0x27
@@ -58,9 +57,9 @@ class Win32Input:
                 kb_struct = ctypes.cast(
                     lParam, ctypes.POINTER(KBDLLHOOKSTRUCT)
                 ).contents
-                is_down = wParam in (WM_KEYDOWN, WM_SYSKEYDOWN)
+                is_down = (wParam == WM_KEYDOWN or wParam == WM_SYSKEYDOWN)
 
-                # This logging used to work for you — keep it
+                # Log every key so we can see the hook is alive
                 logger.info(
                     f"Hook key event: vk={kb_struct.vkCode} "
                     f"scan={kb_struct.scanCode} is_down={is_down}"
@@ -116,32 +115,13 @@ class Win32Input:
 
     def send_text(self, text):
         """
-        Sends text by synthesizing simple keyboard events with keybd_event.
-        Supports:
-          - a–z / A–Z
-          - 0–9
-          - space
-          - newline
-          - underscore
-        This is enough for your current snippets and avoids the flaky Unicode path.
+        Kept for fallback, but primary path will use clipboard+Ctrl+V.
         """
-        logger.info(f"Sending text: {repr(text)}")
-
+        logger.info(f"(fallback) send_text called with: {repr(text)}")
         for ch in text:
-            vk, use_shift = self._char_to_vk(ch)
-            if vk is None:
-                logger.warning(f"Skipping unsupported char in send_text: {repr(ch)}")
-                continue
-
-            if use_shift:
-                user32.keybd_event(VK_SHIFT, 0, 0, 0)
-
-            # Down + up
+            vk = ord(ch)
             user32.keybd_event(vk, 0, 0, 0)
-            user32.keybd_event(vk, 0, 2, 0)  # KEYEVENTF_KEYUP = 0x0002
-
-            if use_shift:
-                user32.keybd_event(VK_SHIFT, 0, 2, 0)
+            user32.keybd_event(vk, 0, 2, 0)
 
     def _send_key(self, vk_code):
         # Down
@@ -149,37 +129,13 @@ class Win32Input:
         # Up
         user32.keybd_event(vk_code, 0, 2, 0)
 
-    def _char_to_vk(self, ch):
-        """
-        Very simple char -> (vk_code, use_shift) mapper.
-        Assumes US layout, enough for demo.
-        """
-        # Newline
-        if ch == "\n" or ch == "\r":
-            return VK_RETURN, False
-
-        # Space
-        if ch == " ":
-            return VK_SPACE, False
-
-        # Digits
-        if "0" <= ch <= "9":
-            return ord(ch), False  # VK_0..VK_9
-
-        # Lowercase letters
-        if "a" <= ch <= "z":
-            return ord(ch.upper()), False  # VK_A..VK_Z
-
-        # Uppercase letters
-        if "A" <= ch <= "Z":
-            return ord(ch), True  # same VK, but Shift
-
-        # Underscore -> Shift + '-'
-        if ch == "_":
-            VK_OEM_MINUS = 0xBD
-            return VK_OEM_MINUS, True
-
-        return None, False
+    def send_ctrl_v(self):
+        """Simulate Ctrl+V."""
+        VK_V = 0x56
+        user32.keybd_event(VK_CONTROL, 0, 0, 0)
+        user32.keybd_event(VK_V, 0, 0, 0)
+        user32.keybd_event(VK_V, 0, 2, 0)
+        user32.keybd_event(VK_CONTROL, 0, 2, 0)
 
     def get_foreground_window_title(self):
         hwnd = user32.GetForegroundWindow()
