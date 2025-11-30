@@ -81,7 +81,7 @@ class LibraryView(ft.Row):
         self.controls = [self.left_pane, self.editor_pane]
         self.current_snippet = None
 
-        # Important: don't call update() before page is attached
+        # Build initial UI from store
         self.refresh_list()
 
     def refresh_list(self):
@@ -94,7 +94,7 @@ class LibraryView(ft.Row):
                         controls=[
                             ft.Text(
                                 snippet.abbreviation,
-                                weight=ft.FontWeight.BOLD
+                                weight=ft.FontWeight.BOLD,
                             ),
                             ft.Text(
                                 snippet.expansion,
@@ -109,16 +109,17 @@ class LibraryView(ft.Row):
                     border_radius=8,
                     bgcolor="rgba(255, 255, 255, 0.05)",
                     on_click=lambda e, s=snippet: self.select_snippet(s),
-                    cursor=ft.Cursor.CLICK,
+                    # IMPORTANT: no cursor=ft.Cursor.CLICK here
                 )
             )
 
-        # Only update if the view is already attached to the page
+        # Only update if already attached to page
         if self.page is not None:
             self.update()
 
     def filter_snippets(self, e):
-        pass  # TODO: Optional filtering logic
+        # TODO: Optional filtering
+        pass
 
     def select_snippet(self, snippet: Snippet):
         self.current_snippet = snippet
