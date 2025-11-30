@@ -6,12 +6,12 @@ class Sidebar(ft.Container):
         self.on_nav_change = on_nav_change
         self.width = 250
         self.padding = 20
-        self.bgcolor = ft.colors.with_opacity(0.02, ft.colors.WHITE)
-        self.border = ft.border.only(right=ft.border.BorderSide(1, ft.colors.with_opacity(0.1, ft.colors.WHITE)))
+        self.bgcolor = ft.Colors.with_opacity(0.02, ft.Colors.WHITE)
+        self.border = ft.border.only(right=ft.border.BorderSide(1, ft.Colors.with_opacity(0.1, ft.Colors.WHITE)))
         
         self.content = ft.Column(
             controls=[
-                ft.Text("EXPANDER", size=12, weight=ft.FontWeight.BOLD, color=ft.colors.with_opacity(0.5, ft.colors.WHITE)),
+                ft.Text("EXPANDER", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.with_opacity(0.5, ft.Colors.WHITE)),
                 ft.Container(height=20),
                 self._build_nav_item("Dashboard", ft.icons.DASHBOARD_ROUNDED, 0),
                 self._build_nav_item("Library", ft.icons.LIBRARY_BOOKS_ROUNDED, 1),
@@ -26,7 +26,7 @@ class Sidebar(ft.Container):
     def _build_nav_item(self, label, icon, index):
         
         def on_hover(e):
-            e.control.bgcolor = ft.colors.with_opacity(0.1, ft.colors.WHITE) if e.data == "true" else ft.colors.TRANSPARENT
+            e.control.bgcolor = ft.Colors.with_opacity(0.1, ft.Colors.WHITE) if e.data == "true" else ft.Colors.TRANSPARENT
             e.control.update()
 
         def on_click(e):
@@ -37,8 +37,8 @@ class Sidebar(ft.Container):
         item = ft.Container(
             content=ft.Row(
                 controls=[
-                    ft.Icon(icon, size=20, color=ft.colors.WHITE70),
-                    ft.Text(label, size=14, color=ft.colors.WHITE),
+                    ft.Icon(icon, size=20, color=ft.Colors.WHITE70),
+                    ft.Text(label, size=14, color=ft.Colors.WHITE),
                 ],
                 spacing=15,
             ),

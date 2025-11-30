@@ -32,9 +32,9 @@ class DashboardView(ft.Column):
                     GlassCard(
                         content=ft.Column(
                             controls=[
-                                ft.Icon(ft.icons.FLASH_ON_ROUNDED, size=30, color=ft.colors.AMBER),
+                                ft.Icon(ft.icons.FLASH_ON_ROUNDED, size=30, color=ft.Colors.AMBER),
                                 ft.Text("124", size=24, weight=ft.FontWeight.BOLD),
-                                ft.Text("Expansions Today", size=12, color=ft.colors.WHITE54),
+                                ft.Text("Expansions Today", size=12, color=ft.Colors.WHITE54),
                             ]
                         ),
                         expand=True,
@@ -42,9 +42,9 @@ class DashboardView(ft.Column):
                     GlassCard(
                         content=ft.Column(
                             controls=[
-                                ft.Icon(ft.icons.TIMER_ROUNDED, size=30, color=ft.colors.BLUE),
+                                ft.Icon(ft.icons.TIMER_ROUNDED, size=30, color=ft.Colors.BLUE),
                                 ft.Text("15m", size=24, weight=ft.FontWeight.BOLD),
-                                ft.Text("Time Saved", size=12, color=ft.colors.WHITE54),
+                                ft.Text("Time Saved", size=12, color=ft.Colors.WHITE54),
                             ]
                         ),
                         expand=True,
