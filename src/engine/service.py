@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 from src.common.ipc import IPCServer, MSG_KEY_EVENT, MSG_REPLACE_TEXT, MSG_PING, MSG_PONG
-from src.common.constants import BACKEND_PORT
+from src.common.constants import IPC_PORT
 from src.engine.store import Store
 from src.engine.core import ExpansionEngine
 
@@ -21,7 +21,7 @@ class BackendService:
     def __init__(self):
         self.store = Store()
         self.engine = ExpansionEngine(self.store)
-        self.server = IPCServer(BACKEND_PORT, self.handle_message)
+        self.server = IPCServer(IPC_PORT, self.handle_message)
 
     def start(self):
         logger.info("Starting Backend Service...")

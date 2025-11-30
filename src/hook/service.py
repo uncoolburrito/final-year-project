@@ -3,7 +3,7 @@ import sys
 import time
 import threading
 from src.common.ipc import IPCClient, MSG_KEY_EVENT, MSG_REPLACE_TEXT, MSG_PING
-from src.common.constants import BACKEND_PORT
+from src.common.constants import IPC_PORT
 from src.hook.win32_input import Win32Input
 
 # Configure Logging
@@ -19,7 +19,7 @@ logger = logging.getLogger("HookService")
 
 class HookService:
     def __init__(self):
-        self.client = IPCClient(BACKEND_PORT)
+        self.client = IPCClient(IPC_PORT)
         self.win32 = Win32Input()
         self.connected = False
         self.lock = threading.Lock()

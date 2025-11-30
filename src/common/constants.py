@@ -1,5 +1,6 @@
 # Ports
-BACKEND_PORT = 5000
+# Ports
+IPC_PORT = 5055
 GUI_PORT = 5001 # If needed for reverse comms, though usually GUI -> Backend is enough
 
 # Message Types

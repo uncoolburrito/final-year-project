@@ -4,6 +4,7 @@ import struct
 import threading
 import logging
 from typing import Callable, Optional
+from src.common.constants import IPC_PORT
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +53,10 @@ def recvall(sock: socket.socket, n: int) -> Optional[bytes]:
     return data
 
 class IPCServer:
-    def __init__(self, port: int, handler: Callable[[dict, socket.socket], None]):
+    def __init__(self, port: int = IPC_PORT, handler: Callable[[dict, socket.socket], None] = None):
         self.port = port
-        self.handler = handler
+        if handler:
+            self.handler = handler
         self.running = False
         self.server_sock = None
         self.thread = None
@@ -95,7 +97,7 @@ class IPCServer:
             self.server_sock.close()
 
 class IPCClient:
-    def __init__(self, port: int):
+    def __init__(self, port: int = IPC_PORT):
         self.port = port
         self.sock = None
 
