@@ -1,5 +1,4 @@
 import flet as ft
-from flet import colors
 from src.gui.components.glass_card import GlassCard
 
 class SettingsView(ft.Column):
@@ -13,9 +12,9 @@ class SettingsView(ft.Column):
                     controls=[
                         ft.Switch(label="Start on Boot", value=False),
                         ft.Switch(label="Dark Mode", value=True),
-                        ft.Divider(color=colors.WHITE10),
+                        ft.Divider(color=ft.colors.WHITE10),
                         ft.Text("About", size=16, weight=ft.FontWeight.BOLD),
-                        ft.Text("Text Expander v0.1.0", color=colors.WHITE54),
+                        ft.Text("Text Expander v0.1.0", color=ft.colors.WHITE54),
                     ]
                 )
             )

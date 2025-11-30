@@ -1,5 +1,4 @@
 import flet as ft
-from flet import colors
 from src.gui.components.glass_card import GlassCard
 
 class DashboardView(ft.Column):
@@ -18,7 +17,7 @@ class DashboardView(ft.Column):
                         ft.Column(
                             controls=[
                                 self.status_text,
-                                ft.Text("Listening for abbreviations...", color=colors.WHITE54),
+                                ft.Text("Listening for abbreviations...", color=ft.colors.WHITE54),
                             ],
                             expand=True,
                         ),
@@ -33,9 +32,9 @@ class DashboardView(ft.Column):
                     GlassCard(
                         content=ft.Column(
                             controls=[
-                                ft.Icon(ft.icons.FLASH_ON_ROUNDED, size=30, color=colors.AMBER),
+                                ft.Icon(ft.icons.FLASH_ON_ROUNDED, size=30, color=ft.colors.AMBER),
                                 ft.Text("124", size=24, weight=ft.FontWeight.BOLD),
-                                ft.Text("Expansions Today", size=12, color=colors.WHITE54),
+                                ft.Text("Expansions Today", size=12, color=ft.colors.WHITE54),
                             ]
                         ),
                         expand=True,
@@ -43,9 +42,9 @@ class DashboardView(ft.Column):
                     GlassCard(
                         content=ft.Column(
                             controls=[
-                                ft.Icon(ft.icons.TIMER_ROUNDED, size=30, color=colors.BLUE),
+                                ft.Icon(ft.icons.TIMER_ROUNDED, size=30, color=ft.colors.BLUE),
                                 ft.Text("15m", size=24, weight=ft.FontWeight.BOLD),
-                                ft.Text("Time Saved", size=12, color=colors.WHITE54),
+                                ft.Text("Time Saved", size=12, color=ft.colors.WHITE54),
                             ]
                         ),
                         expand=True,
